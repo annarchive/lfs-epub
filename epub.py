@@ -22,13 +22,16 @@ def get_part_title(part):
 	try:
 		title = ch.find('h3').string
 	except:
-		title = ch.find('h4').string
+		pass
 	if not title:
 		title = ch.find('h3').find('a').string
 	return title.strip()
 
 def get_chapters(part):
-	chapters = part.find_all('li', class_ = re.compile('chapter|sect1'))
+	chapters = part.find_all('li', class_ = "chapter")
+
+def get_sects(part):
+	sects = part.find_all('li', class_ = "sect1")
 
 def get_chapter_title(part):
 
