@@ -1,0 +1,29 @@
+from calibre.web.feeds.recipes import BasicNewsRecipe
+ 
+class Pro_Git_Chinese(BasicNewsRecipe):
+ 
+    title = 'LFS-BOOK-8.1-systemd'
+    description = 'LFS-BOOK-8.1-systemd'
+    cover_url = 'http://www.linuxfromscratch.org/images/lfs-logo.png'
+ 
+    url_prefix = 'http://www.linuxfromscratch.org/lfs/view/8.1-systemd/'
+    no_stylesheets = True
+    keep_only_tags = [{ 'class': 'col-md-8' }]
+ 
+    def parse_index(self):
+        soup = self.index_to_soup(self.url_prefix)
+ 
+        div = soup.find('ul', { 'class': 'toc' })
+ 
+        articles = []
+        for link in div.findAll('a'):
+
+            til = link.contents[0].strip()
+            url = self.url_prefix +'/'+ link['href']
+            a = { 'title': til, 'url': url }
+ 
+            articles.append(a)
+ 
+        ans = [('LFS-BOOK-8.1-systemd', articles)]
+ 
+        return ans
