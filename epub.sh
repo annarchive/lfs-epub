@@ -14,7 +14,7 @@ release="release"
 HTML="lfs-$version.html"
 EPUB="lfs-$version.epub"
 
-./epub.py $version >view/$version/$HTML
+./html.py $version >view/$version/$HTML
 cd view/$version
 pandoc -t epub3 --toc --smart \
 	$HTML -o $EPUB \
