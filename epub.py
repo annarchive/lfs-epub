@@ -12,6 +12,7 @@
 from bs4 import BeautifulSoup
 import re
 import sys
+import os
 
 def _init(version):
 	path = "view/" + version + "/index.html"
@@ -32,20 +33,54 @@ def get_part_title(part):
 		title = part.find('h3').find('a').string
 	return title.strip()
 
+def get_innerlink_map(version):
+	inner_link_map_long = {}
+	inner_link_map_short = {}
+	rootdir = 'view/' + version
+	listdir = os.walk(rootdir)
+	title_class = re.compile('sect1|part|chapter|title|appendindex|preface')
+	for root,dirs,files in listdir:
+		long_root = root.replace(rootdir, '..')
+		short_root = root.replace(rootdir + '/', '').replace(rootdir, '')
+		for name in files:
+			if name.endswith(".html"):
+				k = os.path.join(root,name)
+				kl = os.path.join(long_root, name)
+				ks = os.path.join(short_root, name)
+				try:
+					sp = BeautifulSoup(open(k), 'html.parser')
+					sect_title_id = sp.find('h1', class_ = title_class).find('a')['id']
+					sect_title_id = '#' + sect_title_id
+					inner_link_map_long[kl] = sect_title_id
+					inner_link_map_short[ks] = sect_title_id
+				except:
+					pass
+
+	return inner_link_map_long, inner_link_map_short
+
 def genHtml(version):
 	path = 'view/' + version + '/'
 	soup,parts = _init(version)
 	book = soup.find("div", class_ = "book")
 	
 	html = ""
-	inner_link_map = {}
+	inner_link_map_long, inner_link_map_short = get_innerlink_map(version)
 	for part in parts:
 		part_title = get_part_title(part)
 		html += '<div class="part"><div class="part-title"><h1>' + part_title + '</h1></div>'
 		
 		chapters = part.find_all('li', class_ = "chapter")
+		if not chapters:
+			chapters = part.find_all('li', class_ = "sect1")
+		if not chapters:
+			chapters = []
+			chapters.append(part)
+
 		for chapter in chapters:
-			chapter_title = chapter.find('h4').string.strip()
+			try:
+				chapter_title = chapter.find('h4').string.strip()
+			except:
+				chapter_title = ""
 			if chapter_title:
 				html += '<div class="chapter-title"><h2>' + chapter_title + '</h2></div>'
 			
@@ -55,8 +90,6 @@ def genHtml(version):
 				fullpath = path + link
 				sp = BeautifulSoup(open(fullpath), "html.parser")
 				content = sp.find('div', class_ = re.compile('sect1|appendix|index|wrap')).decode_contents(formatter="html")
-				sect_title_id = sp.find('h1', class_ = 'sect1').find('a')['id']
-				inner_link_map['../' + link] = "#" + sect_title_id
 				#sect_title = replace("h1", "h3")
 				html += content.replace('h1', 'h3')
 		html += '</div>'
@@ -66,14 +99,19 @@ def genHtml(version):
 	soup.find('div', class_ = "toc").append(new_tag)
 	ret = soup.decode_contents(formatter="html").replace(lfs_replace_str, html)
 	ret = ret.replace('../images/', 'images/')
-	for k,v in inner_link_map.items():
+	for k,v in inner_link_map_long.items():
 		ret = ret.replace(k, v)
-	return inner_link_map, ret
+	for k,v in inner_link_map_short.items():
+		ret = ret.replace(k, v)
+	
+	ret = re.sub('href="#(.*?)#(.*?)"', 'href="#\\2"', ret)
+	return ret
 
 if __name__ == '__main__':
 	if(len(sys.argv) < 2):
 		version = "8.1-systemd"
 	else:
 		version = sys.argv[1];
-	inner_link_map, html = genHtml(version)
+	html = genHtml(version)
 	print(html)
+	#print(get_innerlink_map(version))
