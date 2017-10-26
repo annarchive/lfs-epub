@@ -67,7 +67,7 @@ def genHtml(version):
 	inner_link_map_long, inner_link_map_short = get_innerlink_map(version)
 	for part in parts:
 		part_title = get_part_title(part)
-		html += '<div class="part"><div class="part-title"><h1>' + part_title + '</h1></div>'
+		html += '<h1>' + part_title + '</h1>'
 		
 		chapters = part.find_all('li', class_ = "chapter")
 		if not chapters:
@@ -82,7 +82,7 @@ def genHtml(version):
 			except:
 				chapter_title = ""
 			if chapter_title:
-				html += '<div class="chapter-title"><h2>' + chapter_title + '</h2></div>'
+				html += '<h2>' + chapter_title + '</h2>'
 			
 			sects = chapter.find_all('a')
 			for sect in sects:
@@ -92,12 +92,12 @@ def genHtml(version):
 				content = sp.find('div', class_ = re.compile('sect1|appendix|index|wrap')).decode_contents(formatter="html")
 				#sect_title = replace("h1", "h3")
 				html += content.replace('h1', 'h3')
-		html += '</div>'
 	new_tag = soup.new_tag('div')
 	lfs_replace_str = "LFS_CONTENT_REPLACE_FROM_LFS_EPUB"
 	new_tag.string = lfs_replace_str
 	soup.find('div', class_ = "toc").append(new_tag)
-	ret = soup.decode_contents(formatter="html").replace(lfs_replace_str, html)
+	#ret = soup.decode_contents(formatter="html").replace(lfs_replace_str, html)
+	ret = html
 	ret = ret.replace('../images/', 'images/')
 	for k,v in inner_link_map_long.items():
 		ret = ret.replace(k, v)
