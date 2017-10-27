@@ -23,6 +23,7 @@ echo "</head><body>" >> view/$version/$HTML
 ./make_html.py $version >> view/$version/$HTML
 echo "</body>" >> view/$version/$HTML
 
+enca -L zh_CH -x UTF-8 view/$version/$HTML
 cd view/$version
 pandoc --verbose $HTML -o $EPUB \
 	-t epub3 --toc --smart \
