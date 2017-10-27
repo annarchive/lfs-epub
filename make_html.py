@@ -58,6 +58,12 @@ def get_innerlink_map(version):
 
 	return inner_link_map_long, inner_link_map_short
 
+def copyrightPage(version):
+	sp = BeautifulSoup(open('view/' + version + '/legalnotice.html'), 'html.parser')
+	html = sp.find('div', class_ = 'legalnotice').decode_contents(format="html")
+	html = "<h1>Legal Notice</h1>" + html
+	return html
+	
 def genHtml(version):
 	path = 'view/' + version + '/'
 	soup,parts = _init(version)
@@ -92,13 +98,12 @@ def genHtml(version):
 				content = sp.find('div', class_ = re.compile('sect1|appendix|index|wrap')).decode_contents(formatter="html")
 				#sect_title = replace("h1", "h3")
 				html += content.replace('h1', 'h3')
-	new_tag = soup.new_tag('div')
-	lfs_replace_str = "LFS_CONTENT_REPLACE_FROM_LFS_EPUB"
-	new_tag.string = lfs_replace_str
-	soup.find('div', class_ = "toc").append(new_tag)
+	#new_tag = soup.new_tag('div')
+	#lfs_replace_str = "LFS_CONTENT_REPLACE_FROM_LFS_EPUB"
+	#new_tag.string = lfs_replace_str
+	#soup.find('div', class_ = "toc").append(new_tag)
 	#ret = soup.decode_contents(formatter="html").replace(lfs_replace_str, html)
-	ret = html
-	ret = ret.replace('../images/', 'images/')
+	ret = html.replace('../images/', 'images/')
 	for k,v in inner_link_map_long.items():
 		ret = ret.replace(k, v)
 	for k,v in inner_link_map_short.items():
@@ -112,6 +117,7 @@ if __name__ == '__main__':
 		version = "8.1-systemd"
 	else:
 		version = sys.argv[1];
+	legalnotice = copyrightPage(version)
 	html = genHtml(version)
-	print(html)
+	print(legalnotice + html)
 	#print(get_innerlink_map(version))

@@ -10,15 +10,25 @@
 release="release"
 [ ! -d $release ] && mkdir $release
 [ $# -lt 1 ] && version="8.1-systemd" || version=$1
+cwd=`cd $(dirname $0);pwd`
+RSDIR="$cwd/resources"
 
 HTML="lfs-$version.html"
 EPUB="lfs-$version.epub"
+META="META-$version.html"
 
-./html.py $version >view/$version/$HTML
+echo "<head>" > view/$version/$HTML
+./make_meta.py $version >> view/$version/$HTML
+echo "</head><body>" >> view/$version/$HTML
+./make_html.py $version >> view/$version/$HTML
+echo "</body>" >> view/$version/$HTML
+
 cd view/$version
-pandoc -t epub3 --toc --smart \
-	$HTML -o $EPUB \
+pandoc --verbose $HTML -o $EPUB \
+	-t epub3 --toc --smart \
 	--extract-media=images/ \
+	--epub-cover-image=$RSDIR/cover.jpg \
+	--template=$RSDIR/book-template.epub \
 	--epub-stylesheet=stylesheets/lfs.css \
 	--toc-depth=3
 	
