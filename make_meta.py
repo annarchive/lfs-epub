@@ -17,7 +17,7 @@ from time import strftime
 
 def metadata(version):
 	path = "view/" + version + "/index.html"
-	html_doc=open(path,"r",-1,"utf8")
+	html_doc=open(path,"rb")
 	soup = BeautifulSoup(html_doc, "html.parser")
 
 	titlepage = soup.find('div', { 'class': 'titlepage' })
@@ -26,7 +26,6 @@ def metadata(version):
 	meta['subtitle'] = titlepage.find('h2', class_ = 'subtitle').string.strip()
 	meta['rights'] = titlepage.find('p', class_ = 'copyright').decode_contents(formatter="html")
 	meta['rights'] = meta['rights'].replace('</a>','')
-	meta['rights'] = meta['rights'].replace('&copy;',"@")
 	meta['rights'] = meta['rights'].strip()
 	meta['rights'] = re.sub('<a.*?>', '', meta['rights'])
 	meta['author'] = "Author: " + titlepage.find('h3', class_ = 'author').get_text().strip()

@@ -16,7 +16,7 @@ import os
 
 def _init(version):
 	path = "view/" + version + "/index.html"
-	html_doc=open(path)
+	html_doc=open(path, "rb")
 	soup = BeautifulSoup(html_doc, "html.parser")
 
 	toc = soup.find('div', { 'class': 'toc' })
@@ -48,7 +48,7 @@ def get_innerlink_map(version):
 				kl = os.path.join(long_root, name)
 				ks = os.path.join(short_root, name)
 				try:
-					sp = BeautifulSoup(open(k), 'html.parser')
+					sp = BeautifulSoup(open(k, "rb"), 'html.parser')
 					sect_title_id = sp.find('h1', class_ = title_class).find('a')['id']
 					sect_title_id = '#' + sect_title_id
 					inner_link_map_long[kl] = sect_title_id
@@ -59,8 +59,8 @@ def get_innerlink_map(version):
 	return inner_link_map_long, inner_link_map_short
 
 def copyrightPage(version):
-	sp = BeautifulSoup(open('view/' + version + '/legalnotice.html'), 'html.parser')
-	html = sp.find('div', class_ = 'legalnotice').decode_contents(format="html")
+	sp = BeautifulSoup(open('view/' + version + '/legalnotice.html', "rb"), 'html.parser')
+	html = sp.find('div', class_ = 'legalnotice').decode_contents(formatter="html")
 	html = "<h1>Legal Notice</h1>" + html
 	return html
 	
@@ -94,7 +94,7 @@ def genHtml(version):
 			for sect in sects:
 				link = sect['href']
 				fullpath = path + link
-				sp = BeautifulSoup(open(fullpath), "html.parser")
+				sp = BeautifulSoup(open(fullpath, "rb"), "html.parser")
 				content = sp.find('div', class_ = re.compile('sect1|appendix|index|wrap')).decode_contents(formatter="html")
 				#sect_title = replace("h1", "h3")
 				html += content.replace('h1', 'h3')
