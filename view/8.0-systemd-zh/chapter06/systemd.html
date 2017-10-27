@@ -1,0 +1,947 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="application/xhtml+xml; charset=utf-8" />
+    <title>
+      6.48.&nbsp;systemd-232
+    </title>
+    <link rel="stylesheet" type="text/css" href="../stylesheets/lfs.css" />
+    <meta name="generator" content="DocBook XSL Stylesheets V1.78.1" />
+    <link rel="stylesheet" href="../stylesheets/lfs-print.css" type=
+    "text/css" media="print" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  </head>
+  <body class="lfs" id="lfs-8.0-rc1-systemd">
+    <div class="navheader">
+      <h4>
+        Linux From Scratch （简体中文版） - Version 8.0-rc1-systemd
+      </h4>
+      <h3>
+        第&nbsp;6&nbsp;章&nbsp;安装基本的系统软件
+      </h3>
+      <ul>
+        <li class="prev">
+          <a accesskey="p" href="gettext.html" title=
+          "Gettext-0.19.8.1">上一页</a>
+          <p>
+            Gettext-0.19.8.1
+          </p>
+        </li>
+        <li class="next">
+          <a accesskey="n" href="procps-ng.html" title=
+          "Procps-ng-3.3.12">下一页</a>
+          <p>
+            Procps-ng-3.3.12
+          </p>
+        </li>
+        <li class="up">
+          <a accesskey="u" href="chapter06.html" title=
+          "第&nbsp;6&nbsp;章&nbsp;安装基本的系统软件">上一级</a>
+        </li>
+        <li class="home">
+          <a accesskey="h" href="../index.html" title=
+          "Linux From Scratch （简体中文版） - Version 8.0-rc1-systemd">起始页</a>
+        </li>
+      </ul>
+    </div>
+    <div class="wrap" lang="zh" xml:lang="zh">
+      <h1 class="sect1">
+        <a id="ch-system-systemd" name="ch-system-systemd"></a>6.48.
+        systemd-232
+      </h1>
+      <div class="package" lang="zh" xml:lang="zh">
+        <p>
+          systemd 软件包包含用于控制启动、运行和关闭系统的程序。
+        </p>
+        <div class="segmentedlist">
+          <div class="seglistitem">
+            <div class="seg">
+              <strong class="segtitle">大概编译时间:</strong> <span class=
+              "segbody">7.4 SBU</span>
+            </div>
+            <div class="seg">
+              <strong class="segtitle">所需磁盘空间:</strong> <span class=
+              "segbody">507 MB</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="installation" lang="zh" xml:lang="zh">
+        <h2 class="sect2">
+          6.48.1. 安装 systemd
+        </h2>
+        <p>
+          首先，修复一个使用第五章中编译的 Util-Linux 时的编译错误：
+        </p>
+        <pre class="userinput">
+<kbd class="command">sed -i "s:blkid/::" $(grep -rl "blkid/blkid.h")</kbd>
+</pre>
+        <p>
+          停用两个总是失败的测试例程：
+        </p>
+        <pre class="userinput">
+<kbd class="command">sed -e 's@test/udev-test.pl @@'  \
+    -e 's@test-copy$(EXEEXT) @@' \
+    -i Makefile.in</kbd>
+</pre>
+        <p>
+          新建一个文件以允许使用第 5 章中构建的 Util-Linux 来构建 systemd 时，默认禁用 LTO，且不包含
+          xlstproc:
+        </p>
+        <pre class="userinput">
+<kbd class="command">cat &gt; config.cache &lt;&lt; "EOF"
+<code class="literal">KILL=/bin/kill
+MOUNT_PATH=/bin/mount
+UMOUNT_PATH=/bin/umount
+HAVE_BLKID=1
+BLKID_LIBS="-lblkid"
+BLKID_CFLAGS="-I/tools/include/blkid"
+HAVE_LIBMOUNT=1
+MOUNT_LIBS="-lmount"
+MOUNT_CFLAGS="-I/tools/include/libmount"
+cc_cv_CFLAGS__flto=no
+SULOGIN="/sbin/sulogin"
+XSLTPROC="/usr/bin/xsltproc"</code>
+EOF</kbd>
+</pre>
+        <p>
+          默认要停用 LTO 是因为它会使 <span class=
+          "command"><strong>systemd</strong></span> 以及其它辅助程序链接到 <code class=
+          "filename">libgcc_s.so</code>、导致编译速度下降以及编译后代码量更大。
+        </p>
+        <p>
+          准备编译 systemd：
+        </p>
+        <pre class="userinput">
+<kbd class="command">./configure --prefix=/usr            \
+            --sysconfdir=/etc        \
+            --localstatedir=/var     \
+            --config-cache           \
+            --with-rootprefix=       \
+            --with-rootlibdir=/lib   \
+            --enable-split-usr       \
+            --disable-firstboot      \
+            --disable-ldconfig       \
+            --disable-sysusers       \
+            --without-python         \
+            --with-default-dnssec=no \
+            --docdir=/usr/share/doc/systemd-232</kbd>
+</pre>
+        <div class="variablelist">
+          <p class="title">
+            <strong>配置选项的含义：</strong>
+          </p>
+          <dl class="variablelist">
+            <dt>
+              <span class="term"><em class=
+              "parameter"><code>--config-cache</code></em></span>
+            </dt>
+            <dd>
+              <p>
+                该选项告诉编译系统使用之前创建的 <code class="filename">config.cache</code>
+                文件。
+              </p>
+            </dd>
+            <dt>
+              <span class="term"><em class=
+              "parameter"><code>--with-root*</code></em></span>
+            </dt>
+            <dd>
+              <p>
+                这些选项确保核心程序以及共享库安装到根目录的子目录中。
+              </p>
+            </dd>
+            <dt>
+              <span class="term"><em class=
+              "parameter"><code>--enable-split-usr</code></em></span>
+            </dt>
+            <dd>
+              <p>
+                该选项确保系统中 /bin、/lib 和 /sbin 目录没有到 /usr 对应位置的符号链接时 systemd
+                仍能正常工作。
+              </p>
+            </dd>
+            <dt>
+              <span class="term"><em class=
+              "parameter"><code>--without-python</code></em></span>
+            </dt>
+            <dd>
+              <p>
+                该选项阻止了 <span class=
+                "command"><strong>configure</strong></span> 尝试使用 LFS 中未构建的
+                Python。
+              </p>
+            </dd>
+            <dt>
+              <span class="term"><em class=
+              "parameter"><code>--disable-firstboot</code></em></span>
+            </dt>
+            <dd>
+              <p>
+                该选项防止安装系统初次启动时会进行设置的 systemd 服务。由于 LFS 中所有都要手动设置，它们并无用处。
+              </p>
+            </dd>
+            <dt>
+              <span class="term"><em class=
+              "parameter"><code>--disable-ldconfig</code></em></span>
+            </dt>
+            <dd>
+              <p>
+                该选项防止安装启动时会运行 <span class=
+                "command"><strong>ldconfig</strong></span> 而导致启动时间过长的 systemd
+                单元。尽管对于类似 LFS 之类的源发行版并无用处，如果需要该功能的话可以移除这个选项。
+              </p>
+            </dd>
+            <dt>
+              <span class="term"><em class=
+              "parameter"><code>--disable-sysusers</code></em></span>
+            </dt>
+            <dd>
+              <p>
+                该选项防止安装设置 <code class="filename">/etc/group</code> 和
+                <code class="filename">/etc/passwd</code> 文件的 systemd
+                服务。本章前面章节中已经创建了这两个文件。
+              </p>
+            </dd>
+            <dt>
+              <span class="term"><em class=
+              "parameter"><code>--with-default-dnssec=no</code></em></span>
+            </dt>
+            <dd>
+              <p>
+                此开关关闭实验性的 DNSSEC 支持。
+              </p>
+            </dd>
+          </dl>
+        </div>
+        <p>
+          编译软件包：
+        </p>
+        <pre class="userinput">
+<kbd class="command">make LIBRARY_PATH=/tools/lib</kbd>
+</pre>
+        <p>
+          该软件包有个测试套件，但只能在安装后运行。
+        </p>
+        <p>
+          安装软件包：
+        </p>
+        <pre class="userinput">
+<kbd class="command">make LD_LIBRARY_PATH=/tools/lib install</kbd>
+</pre>
+        <p>
+          移除一个不必要的目录：
+        </p>
+        <pre class="userinput">
+<kbd class="command">rm -rfv /usr/lib/rpm</kbd>
+</pre>
+        <p>
+          创建和 Sysvinit 兼容的符号链接，使得 systemd 作为默认的启动系统：
+        </p>
+        <pre class="userinput">
+<kbd class=
+"command">for tool in runlevel reboot shutdown poweroff halt telinit; do
+     ln -sfv ../bin/systemctl /sbin/${tool}
+done
+ln -sfv ../lib/systemd/systemd /sbin/init</kbd>
+</pre>
+        <p>
+          创建 <code class="filename">/etc/machine-id</code> 需要的 <span class=
+          "command"><strong>systemd-journald</strong></span> 文件：
+        </p>
+        <pre class="userinput">
+<kbd class="command">systemd-machine-id-setup</kbd>
+</pre>
+        <p>
+          由于测试套件高度依赖于宿主系统的内核配置，一些测试很可能失败。另外还需要做些更改使得不会查找本章后面 Util-Linux
+          软件包安装的一个程序。用以下命令测试结果：
+        </p>
+        <pre class="userinput">
+<kbd class="command">sed -i "s:minix:ext4:g" src/test/test-path-util.c
+make LD_LIBRARY_PATH=/tools/lib -k check</kbd>
+</pre>
+      </div>
+      <div class="content" lang="zh" xml:lang="zh">
+        <h2 class="sect2">
+          <a id="contents-systemd" name="contents-systemd"></a>6.48.2.
+          systemd 软件包内容
+        </h2>
+        <div class="segmentedlist">
+          <div class="seglistitem">
+            <div class="seg">
+              <strong class="segtitle">安装的程序:</strong> <span class=
+              "segbody">bootctl, busctl, coredumpctl, halt, hostnamectl,
+              init, journalctl, kernel-install, localectl, loginctl,
+              machinectl, networkctl, poweroff, reboot, runlevel, shutdown,
+              systemctl, systemd-analyze, systemd-ask-password, systemd-cat,
+              systemd-cgls, systemd-cgtop, systemd-delta,
+              systemd-detect-virt, systemd-escape, systemd-hwdb,
+              systemd-inhibit, systemd-machine-id-setup, systemd-mount,
+              systemd-notify, systemd-nspawn, systemd-path, systemd-resolve,
+              systemd-run, systemd-socket-activate, systemd-stdio-bridge,
+              systemd-tmpfiles, systemd-tty-ask-password-agent, telinit,
+              timedatectl, 和 udevadm</span>
+            </div>
+            <div class="seg">
+              <strong class="segtitle">安装的库:</strong> <span class=
+              "segbody">libnss_myhostname.so.2, libnss_mymachines.so.2,
+              libnss_resolve.so.2, libnss_systemd.so.2, libsystemd.so,
+              libsystemd-shared-231.so, 和 libudev.so</span>
+            </div>
+            <div class="seg">
+              <strong class="segtitle">安装的目录:</strong> <span class=
+              "segbody">/etc/binfmt.d, /etc/init.d, /etc/kernel,
+              /etc/modules-load.d, /etc/sysctl.d, /etc/systemd,
+              /etc/tmpfiles.d, /etc/udev, /etc/xdg/systemd, /lib/systemd,
+              /lib/udev, /usr/include/systemd, /usr/lib/binfmt.d,
+              /usr/lib/kernel, /usr/lib/modules-load.d, /usr/lib/sysctl.d,
+              /usr/lib/systemd, /usr/lib/tmpfiles.d,
+              /usr/share/doc/systemd-232, /usr/share/factory,
+              /usr/share/systemd, /var/lib/systemd, 和 /var/log/journal</span>
+            </div>
+          </div>
+        </div>
+        <div class="variablelist">
+          <h3>
+            简要介绍
+          </h3>
+          <table border="0" class="variablelist">
+            <colgroup>
+              <col align="left" valign="top" />
+              <col />
+            </colgroup>
+            <tbody>
+              <tr>
+                <td>
+                  <p>
+                    <a id="bootctl" name="bootctl"></a><span class=
+                    "term"><span class=
+                    "command"><strong>bootctl</strong></span></span>
+                  </p>
+                </td>
+                <td>
+                  <p>
+                    用于查询固件和启动管理设置
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <p>
+                    <a id="busctl" name="busctl"></a><span class=
+                    "term"><span class=
+                    "command"><strong>busctl</strong></span></span>
+                  </p>
+                </td>
+                <td>
+                  <p>
+                    用于自检和监控 D-Bus 总线
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <p>
+                    <a id="coredumpctl" name="coredumpctl"></a><span class=
+                    "term"><span class=
+                    "command"><strong>coredumpctl</strong></span></span>
+                  </p>
+                </td>
+                <td>
+                  <p>
+                    用于检索 systemd 日志生成的核心转储
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <p>
+                    <a id="halt" name="halt"></a><span class=
+                    "term"><span class=
+                    "command"><strong>halt</strong></span></span>
+                  </p>
+                </td>
+                <td>
+                  <p>
+                    通常调用带 <em class="parameter"><code>-h</code></em> 参数的
+                    <span class="command"><strong>shutdown</strong></span>
+                    命令，除非已经是运行等级 0，然后告诉内核暂停系统；它会在 <code class=
+                    "filename">/var/log/wtmp</code> 文件中标记正准备关闭系统。
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <p>
+                    <a id="hostnamectl" name="hostnamectl"></a><span class=
+                    "term"><span class=
+                    "command"><strong>hostnamectl</strong></span></span>
+                  </p>
+                </td>
+                <td>
+                  <p>
+                    用于查询或更改系统名称以及相关的设置
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <p>
+                    <a id="init" name="init"></a><span class=
+                    "term"><span class=
+                    "command"><strong>init</strong></span></span>
+                  </p>
+                </td>
+                <td>
+                  <p>
+                    内核初始化硬件后接管引导程序而启动的第一个进程，它会启动设置的其它进程
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <p>
+                    <a id="journalctl" name="journalctl"></a><span class=
+                    "term"><span class=
+                    "command"><strong>journalctl</strong></span></span>
+                  </p>
+                </td>
+                <td>
+                  <p>
+                    用于查询 systemd 日志的内容
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <p>
+                    <a id="kernel-install" name=
+                    "kernel-install"></a><span class="term"><span class=
+                    "command"><strong>kernel-install</strong></span></span>
+                  </p>
+                </td>
+                <td>
+                  <p>
+                    用于向和从 /boot 中添加或移除内核以及 initramfs 镜像
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <p>
+                    <a id="localectl" name="localectl"></a><span class=
+                    "term"><span class=
+                    "command"><strong>localectl</strong></span></span>
+                  </p>
+                </td>
+                <td>
+                  <p>
+                    用于查询和更改系统地区和键盘布局设置
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <p>
+                    <a id="loginctl" name="loginctl"></a><span class=
+                    "term"><span class=
+                    "command"><strong>loginctl</strong></span></span>
+                  </p>
+                </td>
+                <td>
+                  <p>
+                    用于自检和控制 systemd 登录管理器的状态
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <p>
+                    <a id="machinectl" name="machinectl"></a><span class=
+                    "term"><span class=
+                    "command"><strong>machinectl</strong></span></span>
+                  </p>
+                </td>
+                <td>
+                  <p>
+                    用于自检和控制 systemd 虚拟机和容器注册管理器的状态
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <p>
+                    <a id="networkctl" name="networkctl"></a><span class=
+                    "term"><span class=
+                    "command"><strong>networkctl</strong></span></span>
+                  </p>
+                </td>
+                <td>
+                  <p>
+                    用于检查 systemd-networkd 所看到的网络链接状态
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <p>
+                    <a id="poweroff" name="poweroff"></a><span class=
+                    "term"><span class=
+                    "command"><strong>poweroff</strong></span></span>
+                  </p>
+                </td>
+                <td>
+                  <p>
+                    告诉内核暂停系统并关闭计算机 （查看 <span class=
+                    "command"><strong>halt</strong></span>）
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <p>
+                    <a id="reboot" name="reboot"></a><span class=
+                    "term"><span class=
+                    "command"><strong>reboot</strong></span></span>
+                  </p>
+                </td>
+                <td>
+                  <p>
+                    告诉内核重启系统 （查看 <span class=
+                    "command"><strong>halt</strong></span>）
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <p>
+                    <a id="runlevel" name="runlevel"></a><span class=
+                    "term"><span class=
+                    "command"><strong>runlevel</strong></span></span>
+                  </p>
+                </td>
+                <td>
+                  <p>
+                    报告之前和当期的运行等级、即 <code class=
+                    "filename">/var/run/utmp</code> 文件中的最后一个运行等级记录
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <p>
+                    <a id="shutdown" name="shutdown"></a><span class=
+                    "term"><span class=
+                    "command"><strong>shutdown</strong></span></span>
+                  </p>
+                </td>
+                <td>
+                  <p>
+                    以安全的方式关闭系统、向所有进程发送信号并通知所有登录的用户
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <p>
+                    <a id="systemctl" name="systemctl"></a><span class=
+                    "term"><span class=
+                    "command"><strong>systemctl</strong></span></span>
+                  </p>
+                </td>
+                <td>
+                  <p>
+                    用于自检和控制 systemd 系统和服务管理器的状态
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <p>
+                    <a id="systemd-analyze" name=
+                    "systemd-analyze"></a><span class="term"><span class=
+                    "command"><strong>systemd-analyze</strong></span></span>
+                  </p>
+                </td>
+                <td>
+                  <p>
+                    用于确定当前引导中的系统启动性能
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <p>
+                    <a id="systemd-ask-password" name=
+                    "systemd-ask-password"></a><span class=
+                    "term"><span class="command"><strong>systemd-ask-password</strong></span></span>
+                  </p>
+                </td>
+                <td>
+                  <p>
+                    通过命令行中的问题消息用于向用户查询系统密码或口令
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <p>
+                    <a id="systemd-cat" name="systemd-cat"></a><span class=
+                    "term"><span class=
+                    "command"><strong>systemd-cat</strong></span></span>
+                  </p>
+                </td>
+                <td>
+                  <p>
+                    用于连接进程日志的 STDOUT 和 STDERR
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <p>
+                    <a id="systemd-cgls" name="systemd-cgls"></a><span class=
+                    "term"><span class=
+                    "command"><strong>systemd-cgls</strong></span></span>
+                  </p>
+                </td>
+                <td>
+                  <p>
+                    以树的形式递归显示指定 Linux 控制组层次结构的内容
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <p>
+                    <a id="systemd-cgtop" name=
+                    "systemd-cgtop"></a><span class="term"><span class=
+                    "command"><strong>systemd-cgtop</strong></span></span>
+                  </p>
+                </td>
+                <td>
+                  <p>
+                    按照 CPU、内存和磁盘 I/O 负载的顺序显示本地 Linux 控制组层次结构的顶层控制组
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <p>
+                    <a id="systemd-delta" name=
+                    "systemd-delta"></a><span class="term"><span class=
+                    "command"><strong>systemd-delta</strong></span></span>
+                  </p>
+                </td>
+                <td>
+                  <p>
+                    用于识别和比较 <code class="filename">/etc</code> 中覆盖
+                    <code class="filename">/usr</code> 对应部分的配置文件
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <p>
+                    <a id="systemd-detect-virt" name=
+                    "systemd-detect-virt"></a><span class="term"><span class=
+                    "command"><strong>systemd-detect-virt</strong></span></span>
+                  </p>
+                </td>
+                <td>
+                  <p>
+                    在虚拟化环境中检测执行情况
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <p>
+                    <a id="systemd-escape" name=
+                    "systemd-escape"></a><span class="term"><span class=
+                    "command"><strong>systemd-escape</strong></span></span>
+                  </p>
+                </td>
+                <td>
+                  <p>
+                    用于在 systemd 单元名称中包含转义字符串
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <p>
+                    <a id="systemd-hwdb" name="systemd-hwdb"></a><span class=
+                    "term"><span class=
+                    "command"><strong>systemd-hwdb</strong></span></span>
+                  </p>
+                </td>
+                <td>
+                  <p>
+                    用户管理硬件数据库（hwdb）
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <p>
+                    <a id="systemd-inhibit" name=
+                    "systemd-inhibit"></a><span class="term"><span class=
+                    "command"><strong>systemd-inhibit</strong></span></span>
+                  </p>
+                </td>
+                <td>
+                  <p>
+                    用于在关机、睡眠或空闲休眠锁时执行程序
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <p>
+                    <a id="systemd-machine-id-setup" name=
+                    "systemd-machine-id-setup"></a><span class=
+                    "term"><span class=
+                    "command"><strong>systemd-machine-id-setup</strong></span></span>
+                  </p>
+                </td>
+                <td>
+                  <p>
+                    启动时系统安装程序用随机生成的 ID 初始化保存到 <code class=
+                    "filename">/etc/machine-id</code> 的机器 ID
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <p>
+                    <a id="systemd-mount" name=
+                    "systemd-mount"></a><span class="term"><span class=
+                    "command"><strong>systemd-mount</strong></span></span>
+                  </p>
+                </td>
+                <td>
+                  <p>
+                    是临时挂载或自动挂载驱动器的工具。
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <p>
+                    <a id="systemd-notify" name=
+                    "systemd-notify"></a><span class="term"><span class=
+                    "command"><strong>systemd-notify</strong></span></span>
+                  </p>
+                </td>
+                <td>
+                  <p>
+                    守护进程脚本用于通知 init 系统状态更改
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <p>
+                    <a id="systemd-nspawn" name=
+                    "systemd-nspawn"></a><span class="term"><span class=
+                    "command"><strong>systemd-nspawn</strong></span></span>
+                  </p>
+                </td>
+                <td>
+                  <p>
+                    用于在轻量级容器空间中运行命令或操作系统
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <p>
+                    <a id="systemd-path" name="systemd-path"></a><span class=
+                    "term"><span class=
+                    "command"><strong>systemd-path</strong></span></span>
+                  </p>
+                </td>
+                <td>
+                  <p>
+                    用于查询系统和用户路径
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <p>
+                    <a id="systemd-resolve" name=
+                    "systemd-resolve"></a><span class="term"><span class=
+                    "command"><strong>systemd-resolve</strong></span></span>
+                  </p>
+                </td>
+                <td>
+                  <p>
+                    用于解析域名，IPv4 和 IPv6 地址，DNS 资源记录，以及服务
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <p>
+                    <a id="systemd-run" name="systemd-run"></a><span class=
+                    "term"><span class=
+                    "command"><strong>systemd-run</strong></span></span>
+                  </p>
+                </td>
+                <td>
+                  <p>
+                    用于创建并运行一个临时 .service 或 .scope 单元并在其中运行指定命令
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <p>
+                    <a id="systemd-socket-activate" name=
+                    "systemd-socket-activate"></a><span class=
+                    "term"><span class=
+                    "command"><strong>systemd-socket-activate</strong></span></span>
+                  </p>
+                </td>
+                <td>
+                  <p>
+                    用于监听设备套接字并在连接时启动进程的工具。
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <p>
+                    <a id="systemd-tmpfiles" name=
+                    "systemd-tmpfiles"></a><span class="term"><span class=
+                    "command"><strong>systemd-tmpfiles</strong></span></span>
+                  </p>
+                </td>
+                <td>
+                  <p>
+                    基于配置文件格式和 <code class="filename">tmpfiles.d</code>
+                    指定的位置创建、删除以及清理易变的和临时文件和目录
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <p>
+                    <a id="systemd-tty-ask-password-agent" name=
+                    "systemd-tty-ask-password-agent"></a><span class=
+                    "term"><span class=
+                    "command"><strong>systemd-tty-ask-password-agent</strong></span></span>
+                  </p>
+                </td>
+                <td>
+                  <p>
+                    用于列出或执行正在等待的 systemd 密码请求
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <p>
+                    <a id="telinit" name="telinit"></a><span class=
+                    "term"><span class=
+                    "command"><strong>telinit</strong></span></span>
+                  </p>
+                </td>
+                <td>
+                  <p>
+                    告诉 <span class="command"><strong>init</strong></span>
+                    要更改的运行等级
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <p>
+                    <a id="timedatectl" name="timedatectl"></a><span class=
+                    "term"><span class=
+                    "command"><strong>timedatectl</strong></span></span>
+                  </p>
+                </td>
+                <td>
+                  <p>
+                    用于查询和更改系统时间和设置
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <p>
+                    <a id="udevadm" name="udevadm"></a><span class=
+                    "term"><span class=
+                    "command"><strong>udevadm</strong></span></span>
+                  </p>
+                </td>
+                <td>
+                  <p>
+                    通用 udev 管理工具：控制 udevd 守护进程、从 udev 数据库提供信息、 监控 uevent、等待
+                    uevent 完成、检测 udev 配置、为指定设备触发 uevents
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <p>
+                    <a id="libsystemd" name="libsystemd"></a><span class=
+                    "term"><code class="filename">libsystemd</code></span>
+                  </p>
+                </td>
+                <td>
+                  <p>
+                    systemd 工具库
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <p>
+                    <a id="libudev" name="libudev"></a><span class=
+                    "term"><code class="filename">libudev</code></span>
+                  </p>
+                </td>
+                <td>
+                  <p>
+                    用于获取 udev 设备信息的库
+                  </p>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="navfooter">
+      <ul>
+        <li class="prev">
+          <a accesskey="p" href="gettext.html" title=
+          "Gettext-0.19.8.1">上一页</a>
+          <p>
+            Gettext-0.19.8.1
+          </p>
+        </li>
+        <li class="next">
+          <a accesskey="n" href="procps-ng.html" title=
+          "Procps-ng-3.3.12">下一页</a>
+          <p>
+            Procps-ng-3.3.12
+          </p>
+        </li>
+        <li class="up">
+          <a accesskey="u" href="chapter06.html" title=
+          "第&nbsp;6&nbsp;章&nbsp;安装基本的系统软件">上一级</a>
+        </li>
+        <li class="home">
+          <a accesskey="h" href="../index.html" title=
+          "Linux From Scratch （简体中文版） - Version 8.0-rc1-systemd">起始页</a>
+        </li>
+      </ul>
+    </div>
+  </body>
+</html>
