@@ -9,7 +9,7 @@
 ############################
 release="release"
 [ ! -d $release ] && mkdir $release
-[ $# -lt 1 ] && version="8.1-systemd" || version=$1
+[ $# -lt 1 ] && version="stable" || version=$1
 cwd=`cd $(dirname $0);pwd`
 RSDIR="$cwd/resources"
 
@@ -26,11 +26,11 @@ echo "</body>" >> view/$version/$HTML
 enca -L zh_CH -x UTF-8 view/$version/$HTML
 cd view/$version
 pandoc --verbose $HTML -o $EPUB \
-	-t epub3 --toc --smart \
+	-f html+smart -t epub3+smart --toc \
 	--extract-media=images/ \
 	--epub-cover-image=$RSDIR/cover.jpg \
 	--template=$RSDIR/book-template.epub \
-	--epub-stylesheet=stylesheets/lfs.css \
+	--css=stylesheets/lfs.css \
 	--toc-depth=3
 	
 	#--epub-chapter-level=3 \
